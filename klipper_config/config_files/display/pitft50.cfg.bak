@@ -1,0 +1,11 @@
+[display]
+lcd_type:
+cs_pin:
+sclk_pin:
+sid_pin:
+encoder_pins:
+click_pin:
+#kill_pin:
+
+[output_pin beeper]
+pin:

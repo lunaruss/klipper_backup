@@ -1,0 +1,57 @@
+[gcode_macro START_PRINT]
+gcode:
+    {% set svv = printer.save_variables.variables %}
+
+    {% if svv.material == 'PLA' %}
+        {action_respond_info(
+            "Setting Extruder Temperature: %.2f C\n"
+            "Setting Bed Temperature: %.2f%%" % (
+                svv.hotend_temp_pla|float,
+                svv.bed_temp_pla|float))}
+        {% set BED_TEMP = svv.bed_temp_pla|default(45)|float %}
+        {% set EXTRUDER_TEMP = svv.hotend_temp_pla|default(215)|float %}
+    {% endif %}
+
+    {% if svv.material == 'PETG' %}
+        {action_respond_info(
+            "Setting Extruder Temperature: %.2f C\n"
+            "Setting Bed Temperature: %.2f C\n" % (
+                svv.hotend_temp_petg|float,
+                svv.bed_temp_petg|float))}
+        {% set BED_TEMP = svv.bed_temp_petg|default(45)|float %}
+        {% set EXTRUDER_TEMP = svv.hotend_temp_petg|default(215)|float %}
+    {% endif %}
+
+    
+    ############ Start Dual Nozzle/Bed Preheating ############
+    STATUS_HEATING
+    M140 S{BED_TEMP}                              # Start preheating the bed
+    M104 S{EXTRUDER_TEMP} T0                      # Start preheating the hotend
+    G90                                           # Set all axes to absolute positioning
+    M82                                           # Set extruder to absolute positioning
+    SET_GCODE_OFFSET Z=-.208                    # Set the Z-Offset
+    #SET_GCODE_OFFSET Z=-.810                    # Set the Z-Offset
+    M190 S{BED_TEMP}                              # Heat up the bed
+    M109 S{EXTRUDER_TEMP} T0
+    STATUS_HOMING                      # Heat up the hotend
+    G28
+    ############ Check that the bed is not out of level from mesh ############
+    #LEVEL_BED_ADVANCED MAX_AGE=10                # Probe mesh eventually
+    BED_MESH_PROFILE LOAD=default
+    ############          End Preheating          ############
+    #M300 S1000 P20                                # Chirp to indicate starting to print
+    ############ Draw a Nozzle Cleaning Line      ############
+    #M221 S94
+    G92 E0             
+    STATUS_MESHING                           # Reset the extruder
+    #SET_GCODE_OFFSET Z=-0.25                      # Reset the G-Code Z Offset (adjust Z offset if needed)
+    G1 Z2.0 F3000                                 # Move Z Axis up a little
+    G1 X330.0 Y11.0 Z0.3 F5000                    # Move to the start position
+    G1 X100.0 Y11.0 Z0.3 F5000 E15                # Draw the first line
+    G1 X100.0 Y11.5 Z0.3 F5000                    # Move to the side a litte
+    G1 X330.0 Y11.5 Z0.3 F1500 E30                # Draw the second line                 
+    G92 E0                                        # Reset the extruder
+    G1 Z10.0 F3000                                # Move Z Axis up a littl
+    G1 X330 Y20 Z0.3 F5000                        # Move over to prevent blob squish
+    M400
+    STATUS_PRINTING
